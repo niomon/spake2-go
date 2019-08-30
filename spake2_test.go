@@ -1,4 +1,4 @@
-package spake2
+package spake2go
 
 import (
 	"testing"
