@@ -1,14 +1,6 @@
 package ciphersuite
 
-import (
-// "math/big"
-
-// kyber "go.dedis.ch/kyber/v3"
-// "go.dedis.ch/kyber/v3/suites"
-// "go.dedis.ch/kyber/v3/util/encoding"
-)
-
-// CipherSuite ...
+// CipherSuite is an interface for a SPAKE2 (or SPAKE2) cipher suite.
 type CipherSuite interface {
 	Curve() Curve
 	HashDigest([]byte) []byte
@@ -17,7 +9,7 @@ type CipherSuite interface {
 	Mhf([]byte, []byte) ([]byte, error)
 }
 
-// Curve ... TODO
+// Curve is an interface for the elliptic curve.
 type Curve interface {
 	M() Point
 	N() Point
@@ -27,7 +19,7 @@ type Curve interface {
 	NewScalar([]byte) (Scalar, error)
 }
 
-// Point ... TODO
+// Point is an interface for a point on the elliptic curve.
 type Point interface {
 	Bytes() []byte
 	Add(Point) Point
@@ -37,11 +29,12 @@ type Point interface {
 	IsSmallOrder() bool
 }
 
-// Scalar ... TODO
+// Scalar is an interface for a scalar on the elliptic curve.
 type Scalar interface {
 	Bytes() []byte
 	Add(Scalar) Scalar
 	Mul(Scalar) Scalar
+	Neg() Scalar
 }
 
 // Hkdf is a struct of the options for HKDF.

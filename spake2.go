@@ -1,7 +1,7 @@
 package spake2go
 
 import (
-	// "errors"
+	"bytes"
 	"encoding/binary"
 
 	"authcore.io/spake2go/internal/ciphersuite"
@@ -44,15 +44,23 @@ type ServerState struct {
 // ClientPlusState defines an intermediate state for SPAKE2. The `Finish` method takes a message
 // from the server and verifies if it is valid.
 type ClientPlusState struct {
-	suite ciphersuite.CipherSuite
-	x     ciphersuite.Scalar
+	suite          ciphersuite.CipherSuite
+	x              ciphersuite.Scalar
+	clientIdentity []byte
+	serverIdentity []byte
+	w0             ciphersuite.Scalar
+	w1             ciphersuite.Scalar
 }
 
 // ServerPlusState defines an intermediate state for SPAKE2. The `Finish` method takes a message
 // from the client and verifies if it is valid.
 type ServerPlusState struct {
-	suite ciphersuite.CipherSuite
-	y     ciphersuite.Scalar
+	suite          ciphersuite.CipherSuite
+	y              ciphersuite.Scalar
+	clientIdentity []byte
+	serverIdentity []byte
+	verifierW0     []byte
+	verifierL      []byte
 }
 
 // ClientSharedSecret defines a shared secret. `GetConfirmation` gets the confirmation message,
@@ -132,14 +140,18 @@ func (s SPAKE2) ComputeVerifier(password, salt []byte) ([]byte, error) {
 
 // StartClient initializes a new client for SPAKE2+. Returns a SPAKE2+ client state and message.
 func (s SPAKE2Plus) StartClient(clientIdentity, serverIdentity, password, salt []byte) (*ClientPlusState, []byte, error) {
-	return nil, []byte{}, nil
-	// return &ClientPlusState{s.suite}, []byte{}, nil
+	w0, w1, err := s.computeW0W1(password, salt, clientIdentity, serverIdentity)
+	if err != nil {
+		return nil, []byte{}, err
+	}
+	x := s.suite.Curve().RandomScalar()
+	return &ClientPlusState{s.suite, x, clientIdentity, serverIdentity, w0, w1}, []byte{}, nil
 }
 
 // StartServer initializes a new server for SPAKE2+. Returns a SPAKE2+ server state and message.
 func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, verifierW0 []byte, verifierL []byte) (*ServerPlusState, []byte, error) {
-	return nil, []byte{}, nil
-	// return &ServerPlusState{s.suite}, []byte{}, nil
+	y := s.suite.Curve().RandomScalar()
+	return &ServerPlusState{s.suite, y, clientIdentity, serverIdentity, verifierW0, verifierL}, []byte{}, nil
 }
 
 func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) (ciphersuite.Scalar, ciphersuite.Scalar, error) {
@@ -150,11 +162,11 @@ func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt [
 	if err != nil {
 		return nil, nil, err
 	}
-	w0, err := s.suite.Curve().NewScalar(wBytes[:16])
+	w0, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), wBytes[:16]...))
 	if err != nil {
 		return nil, nil, err
 	}
-	w1, err := s.suite.Curve().NewScalar(wBytes[16:])
+	w1, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), wBytes[16:]...))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -168,7 +180,9 @@ func (s SPAKE2Plus) ComputeVerifier(password, salt, clientIdentity, serverIdenti
 	if err != nil {
 		return []byte{}, []byte{}, err
 	}
-	return w0.Bytes(), w1.Bytes(), nil
+	P := s.suite.Curve().P()
+	L := P.ScalarMul(w1)
+	return unpad(w0.Bytes()), unpad(L.Bytes()), nil
 }
 
 func concat(bytesArray ...[]byte) []byte {
@@ -182,4 +196,8 @@ func concat(bytesArray ...[]byte) []byte {
 		}
 	}
 	return result
+}
+
+func unpad(bytesArray []byte) []byte {
+	return bytes.TrimLeft(bytesArray, "\x00")
 }

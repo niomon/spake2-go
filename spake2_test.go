@@ -2,8 +2,9 @@ package spake2go
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSPAKE2(t *testing.T) {
@@ -133,4 +134,19 @@ func TestSPAKE2Plus(t *testing.T) {
 
 	// A and B have a common shared secret.
 	assert.Equal(t, sharedSecretA.Bytes(), sharedSecretB.Bytes())
+}
+
+func TestXXX(t *testing.T) {
+	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
+	s, _ := NewSPAKE2Plus(suite)
+
+	wBytes, err := s.suite.Mhf(
+		concat([]byte("password"), []byte("client"), []byte("server")),
+		[]byte("NaCl"),
+	)
+	t.Log(wBytes[:16])
+	t.Log(err)
+
+	x := s.suite.Curve().RandomScalar().Add(s.suite.Curve().RandomScalar()).Bytes()
+	t.Log(x)
 }

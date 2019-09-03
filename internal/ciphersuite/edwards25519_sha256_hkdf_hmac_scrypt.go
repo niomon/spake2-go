@@ -6,11 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
-	"math/big"
 
 	kyber "go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v3/util/encoding"
 	"golang.org/x/crypto/hkdf"
-	// "go.dedis.ch/kyber/v3/group/edwards25519"
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -62,42 +62,71 @@ type Ed25519Point struct {
 
 // Bytes encodes an Ed25519Point to an array of bytes.
 func (p Ed25519Point) Bytes() []byte {
-	return []byte{}
+	group := suites.MustFind("Ed25519")
+	pStr, err := encoding.PointToStringHex(group, p.v)
+	pBytes, err := hex.DecodeString(pStr)
+	if err != nil {
+		panic("cannot encode point")
+	}
+	return pBytes
 }
 
 // Add adds an Ed25519Point to return another Ed25519Point.
 func (p Ed25519Point) Add(q Point) Point {
-	return p // TODO
+	qq, ok := q.(Ed25519Point)
+	if !ok {
+		panic("incorrect type of point")
+	}
+	group := suites.MustFind("Ed25519")
+	r := group.Point().Add(p.v, qq.v)
+	return Ed25519Point{v: r}
 }
 
 // Neg negates the Ed25519Point.
 func (p Ed25519Point) Neg() Point {
-	return p // TODO
+	group := suites.MustFind("Ed25519")
+	r := group.Point().Neg(p.v)
+	return Ed25519Point{v: r}
 }
 
 // ScalarMul multiplies the point with a Ed25519Scalar.
 func (p Ed25519Point) ScalarMul(t Scalar) Point {
-	return p
+	tt, ok := t.(Ed25519Scalar)
+	if !ok {
+		panic("incorrect type of scalar")
+	}
+	group := suites.MustFind("Ed25519")
+	r := group.Point().Mul(tt.v, p.v)
+	return Ed25519Point{v: r}
 }
 
 // IsInfinity checks if a point is the infinity point.
 func (p Ed25519Point) IsInfinity() bool {
-	return false // TODO
+	group := suites.MustFind("Ed25519")
+	point := group.Point().Set(p.v)
+	return point.Equal(point.Null())
 }
 
 // IsSmallOrder checks if a point is of small order.
 func (p Ed25519Point) IsSmallOrder() bool {
-	return p.ScalarMul(Ed25519Scalar{v: big.NewInt(8)}).IsInfinity()
+	group := suites.MustFind("Ed25519")
+	cofactor := Ed25519Scalar{v: group.Scalar().SetInt64(8)}
+	return p.ScalarMul(cofactor).IsInfinity()
 }
 
 // Ed25519Scalar is a struct for the EDWARDS25519 scalar. An implementation for the Scalar interface.
 type Ed25519Scalar struct {
-	v *big.Int
+	v kyber.Scalar
 }
 
 // Bytes encodes a Ed25519Scalar to an array of bytes.
 func (s Ed25519Scalar) Bytes() []byte {
-	return s.v.Bytes()
+	sBytes, err := s.v.MarshalBinary()
+	if err != nil {
+		panic("cannot marshal scalar")
+	}
+	sBytes = reverse(sBytes)
+	return sBytes
 }
 
 // Add adds an Ed25519Scalar to another.
@@ -106,9 +135,9 @@ func (s Ed25519Scalar) Add(t Scalar) Scalar {
 	if !ok {
 		panic("incorrect type of scalar")
 	}
-	u := new(big.Int)
-	u.Add(s.v, tt.v)
-	return NewEd25519Scalar(u)
+	group := suites.MustFind("Ed25519")
+	r := group.Scalar().Add(s.v, tt.v)
+	return Ed25519Scalar{v: r}
 }
 
 // Mul multiplies an Ed25519Scalar to another.
@@ -117,17 +146,16 @@ func (s Ed25519Scalar) Mul(t Scalar) Scalar {
 	if !ok {
 		panic("incorrect type of scalar")
 	}
-	u := new(big.Int)
-	u.Mul(s.v, tt.v)
-	return NewEd25519Scalar(u)
+	group := suites.MustFind("Ed25519")
+	r := group.Scalar().Mul(s.v, tt.v)
+	return Ed25519Scalar{v: r}
 }
 
-// NewEd25519Scalar returns a Ed25519Scalar by a big.Int.
-func NewEd25519Scalar(v *big.Int) Ed25519Scalar {
-	order := new(big.Int)
-	order.SetString("7237005577332262213973186563042994240857116359379907606001950938285454250989", 10)
-	v.Mod(v, order)
-	return Ed25519Scalar{v}
+// Neg negates the scalar.
+func (s Ed25519Scalar) Neg() Scalar {
+	group := suites.MustFind("Ed25519")
+	r := group.Scalar().Neg(s.v)
+	return Ed25519Scalar{v: r}
 }
 
 // Ed25519 is a struct for the Edwards25519 curve. An implemention for the Curve interface.
@@ -188,18 +216,32 @@ func (c Ed25519) RandomScalar() Scalar {
 
 // NewPoint decodes an array of bytes to an Ed25519Point.
 func (c Ed25519) NewPoint(p []byte) (Point, error) {
-	// curve := edwards25519.Curve{}
-	// curve.
-	return Ed25519Point{}, nil
+	group := suites.MustFind("Ed25519")
+	pStr := hex.EncodeToString(p)
+	pKyberPt, err := encoding.StringHexToPoint(group, pStr)
+	if err != nil {
+		return nil, err
+	}
+	return Ed25519Point{v: pKyberPt}, nil
 }
 
 // NewScalar decodes an array of bytes to an Ed25519Scalar.
 func (c Ed25519) NewScalar(p []byte) (Scalar, error) {
-	pInt := new(big.Int)
-	pInt.SetBytes(p)
-	return NewEd25519Scalar(pInt), nil
+	p = reverse(p)
+	group := suites.MustFind("Ed25519")
+	pStr := hex.EncodeToString(p)
+	pKyberSc, err := encoding.StringHexToScalar(group, pStr)
+	if err != nil {
+		return nil, err
+	}
+	return Ed25519Scalar{v: pKyberSc}, nil
 }
 
-func (c Ed25519) cofactor() *big.Int {
-	return big.NewInt(8)
+func reverse(p []byte) []byte {
+	q := make([]byte, len(p))
+	for i := 0; 2*i < len(p); i++ {
+		j := len(p) - 1 - i
+		q[i], q[j] = p[j], p[i]
+	}
+	return q[:]
 }
