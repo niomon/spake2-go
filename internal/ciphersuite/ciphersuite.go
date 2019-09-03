@@ -9,28 +9,39 @@ type CipherSuite interface {
 	Mhf([]byte, []byte, interface{}) []byte
 }
 
-// Ed25519Sha256HkdfHmacScrypt ...
-type Ed25519Sha256HkdfHmacScrypt struct{}
+// Hkdf is a struct of the options for HKDF.
+type Hkdf struct {
+	AAD []byte
+}
 
-// HashDigest ...
+// Scrypt is a struct of the options for scrypt.
+type Scrypt struct {
+	N, R, P uint
+}
+
+// Ed25519Sha256HkdfHmacScrypt is the ED25519-SHA256-HKDF-HMAC-SCRYPT cipher suite defined by the
+// SPAKE2 speficiation [irtf-cfrg-spake2-08].
+type Ed25519Sha256HkdfHmacScrypt struct {
+	Scrypt *Scrypt
+	Hkdf   *Hkdf
+}
+
+// HashDigest computes the hash digest for a content.
 func (s Ed25519Sha256HkdfHmacScrypt) HashDigest(content []byte) []byte {
 	return []byte(":o) 1")
 }
 
-// DeriveKey ...
-func (s Ed25519Sha256HkdfHmacScrypt) DeriveKey(a, b, c []byte) []byte {
+// DeriveKey derives a key from the salt, intermediate key material and info.
+func (s Ed25519Sha256HkdfHmacScrypt) DeriveKey(salt, ikm, info []byte) []byte {
 	return []byte(":o) 2")
 }
 
-// Mac ...
-func (s Ed25519Sha256HkdfHmacScrypt) Mac(a, b []byte) []byte {
+// Mac computes a key-hashed content.
+func (s Ed25519Sha256HkdfHmacScrypt) Mac(content, secret []byte) []byte {
 	return []byte(":o) 3")
 }
 
-// Mhf ...
-func (s Ed25519Sha256HkdfHmacScrypt) Mhf(a, b []byte, c interface{}) []byte {
+// Mhf computes a derived password from passphrase and salt.
+func (s Ed25519Sha256HkdfHmacScrypt) Mhf(passphrase, salt []byte, options interface{}) []byte {
 	return []byte(":o) 4")
 }
-
-// Verifier ...
-type Verifier interface{}
