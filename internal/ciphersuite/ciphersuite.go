@@ -1,6 +1,16 @@
 package ciphersuite
 
+<<<<<<< HEAD
 // CipherSuite is an interface for a SPAKE2 (or SPAKE2) cipher suite.
+=======
+// "math/big"
+
+// kyber "go.dedis.ch/kyber/v3"
+// "go.dedis.ch/kyber/v3/suites"
+// "go.dedis.ch/kyber/v3/util/encoding"
+
+// CipherSuite ...
+>>>>>>> Implement SharedSecret and State.
 type CipherSuite interface {
 	Curve() Curve
 	HashDigest([]byte) []byte
@@ -9,7 +19,11 @@ type CipherSuite interface {
 	Mhf([]byte, []byte) ([]byte, error)
 }
 
+<<<<<<< HEAD
 // Curve is an interface for the elliptic curve.
+=======
+// Curve ... TODO
+>>>>>>> Implement SharedSecret and State.
 type Curve interface {
 	M() Point
 	N() Point
@@ -19,7 +33,11 @@ type Curve interface {
 	NewScalar([]byte) (Scalar, error)
 }
 
+<<<<<<< HEAD
 // Point is an interface for a point on the elliptic curve.
+=======
+// Point ... TODO
+>>>>>>> Implement SharedSecret and State.
 type Point interface {
 	Bytes() []byte
 	Add(Point) Point
@@ -29,7 +47,11 @@ type Point interface {
 	IsSmallOrder() bool
 }
 
+<<<<<<< HEAD
 // Scalar is an interface for a scalar on the elliptic curve.
+=======
+// Scalar ... TODO
+>>>>>>> Implement SharedSecret and State.
 type Scalar interface {
 	Bytes() []byte
 	Add(Scalar) Scalar
