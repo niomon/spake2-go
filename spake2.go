@@ -64,7 +64,7 @@ func Hkdf(AAD []byte) *ciphersuite.Hkdf {
 }
 
 // Scrypt returns a struct of the options for scrypt.
-func Scrypt(N, R, P uint) *ciphersuite.Scrypt {
+func Scrypt(N, R, P int) *ciphersuite.Scrypt {
 	return &ciphersuite.Scrypt{N, R, P}
 }
 
@@ -99,7 +99,7 @@ func (s SPAKE2) StartServer(clientIdentity, serverIdentity, verifier []byte) (*S
 
 // ComputeVerifier computes a verifier for SPAKE2 from password and salt.
 func (s SPAKE2) ComputeVerifier(password, salt []byte) ([]byte, error) {
-	return []byte{}, nil
+	return s.suite.Mhf(password, salt)
 }
 
 // StartClient initializes a new client for SPAKE2+. Returns a SPAKE2+ client state and message.
