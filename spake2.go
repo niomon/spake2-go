@@ -120,6 +120,12 @@ func (s SPAKE2) startClient(clientIdentity, serverIdentity, password, salt, aad 
 	if err != nil {
 		return nil, []byte{}, err
 	}
+	// Below is a temporary workaround for kyber: w needs to be smaller than the order
+	w, err = s.suite.Curve().NewScalar(w.Bytes())
+	if err != nil {
+		return nil, []byte{}, err
+	}
+
 	T := s.suite.Curve().P().ScalarMul(x).Add(s.suite.Curve().M().ScalarMul(w))
 	TBytes := T.Bytes()
 	return &ClientState{s.suite, x, clientIdentity, serverIdentity, w.Bytes(), TBytes, aad}, TBytes, nil
