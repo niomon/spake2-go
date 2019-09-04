@@ -127,12 +127,12 @@ func NewFromServerPlusState(idA, idB, X, Y, Z, V, w0, aad []byte, suite ciphersu
 
 // GetConfirmation gets a confirmation message for the key confirmation.
 func (s ClientSharedSecret) GetConfirmation() []byte {
-	return s.suite.Mac(s.kcA, s.transcript)
+	return s.suite.Mac(s.transcript, s.kcA)
 }
 
 // Verify verifies an incoming confirmation message.
 func (s ClientSharedSecret) Verify(incomingConfirmation []byte) error {
-	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.kcB, s.transcript)) {
+	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.transcript, s.kcB)) {
 		return errors.New("Verification Failed")
 	}
 	return nil
@@ -145,12 +145,12 @@ func (s ClientSharedSecret) Bytes() []byte {
 
 // GetConfirmation gets a confirmation message for the key confirmation.
 func (s ServerSharedSecret) GetConfirmation() []byte {
-	return s.suite.Mac(s.kcB, s.transcript)
+	return s.suite.Mac(s.transcript, s.kcB)
 }
 
 // Verify verifies an incoming confirmation message.
 func (s ServerSharedSecret) Verify(incomingConfirmation []byte) error {
-	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.kcA, s.transcript)) {
+	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.transcript, s.kcA)) {
 		return errors.New("Verification Failed")
 	}
 	return nil
