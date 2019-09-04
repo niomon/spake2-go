@@ -52,8 +52,8 @@ type ClientPlusState struct {
 	x              ciphersuite.Scalar
 	clientIdentity []byte
 	serverIdentity []byte
-	w0             []byte
-	w1             []byte
+	verifierW0     []byte
+	verifierW1     []byte
 	msgX           []byte
 	aad            []byte
 }
@@ -194,7 +194,7 @@ func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, verifierW0, veri
 	return &ServerPlusState{s.suite, y, clientIdentity, serverIdentity, verifierW0, verifierL, msgYBytes, aad}, msgYBytes, nil
 }
 
-func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) (ciphersuite.Scalar, ciphersuite.Scalar, error) {
+func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) ([]byte, []byte, error) {
 	wBytes, err := s.suite.Mhf(
 		concat(password, clientIdentity, serverIdentity),
 		salt,
@@ -210,7 +210,7 @@ func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt [
 	if err != nil {
 		return nil, nil, err
 	}
-	return w0, w1, nil
+	return w0.Bytes(), w1.Bytes(), nil
 }
 
 // ComputeVerifier computes a verifier for SPAKE2 from password, salt and identities of the client
@@ -218,11 +218,17 @@ func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt [
 func (s SPAKE2Plus) ComputeVerifier(password, salt, clientIdentity, serverIdentity []byte) ([]byte, []byte, error) {
 	w0, w1, err := s.computeW0W1(clientIdentity, serverIdentity, password, salt)
 	if err != nil {
-		return []byte{}, []byte{}, err
+		return nil, nil, err
 	}
+
+	w1Scalar, err := s.suite.Curve().NewScalar(w1)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	P := s.suite.Curve().P()
-	L := P.ScalarMul(w1)
-	return unpad(w0.Bytes()), unpad(L.Bytes()), nil
+	L := P.ScalarMul(w1Scalar)
+	return unpad(w0), unpad(L.Bytes()), nil
 }
 
 func concat(bytesArray ...[]byte) []byte {

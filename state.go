@@ -66,12 +66,12 @@ func (s ClientPlusState) Finish(incomingMessage []byte) (*ClientSharedSecret, er
 		return nil, errors.New("Corrupt Message")
 	}
 
-	w0Scalar, err := s.suite.Curve().NewScalar(s.w0)
+	w0Scalar, err := s.suite.Curve().NewScalar(s.verifierW0)
 	if err != nil {
 		return nil, err
 	}
 
-	w1Scalar, err := s.suite.Curve().NewScalar(s.w1)
+	w1Scalar, err := s.suite.Curve().NewScalar(s.verifierW1)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (s ClientPlusState) Finish(incomingMessage []byte) (*ClientSharedSecret, er
 	VElement := tmp.ScalarMul(w1Scalar)
 	VBytes := VElement.Bytes()
 
-	return NewFromClientPlusState(s.clientIdentity, s.serverIdentity, s.msgX, incomingMessage, ZBytes, VBytes, s.w0, s.aad, s.suite), nil
+	return NewFromClientPlusState(s.clientIdentity, s.serverIdentity, s.msgX, incomingMessage, ZBytes, VBytes, s.verifierW0, s.aad, s.suite), nil
 }
 
 // Finish verifies an incomingMessage from the client and returns a shared secret if it is
