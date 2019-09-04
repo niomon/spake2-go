@@ -320,13 +320,13 @@ func TestSPAKE2Vectors(t *testing.T) {
 		serverIdentity := []byte(testVector.ServerIdentity)
 		password := []byte(testVector.Password)
 		salt := []byte(testVector.MHF.Salt)
-		aad := []byte{}
+		aad := []byte(testVector.KDF.AAD)
 
 		xHex, err := hex.DecodeString(testVector.X)
 		if !assert.NoError(t, err) {
 			return
 		}
-		x, err := suite.Curve().NewScalar(xHex)
+		x, err := suite.Curve().NewScalar(padScalarBytes(xHex, suite.Curve().ScalarSize()))
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -334,7 +334,7 @@ func TestSPAKE2Vectors(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
-		y, err := suite.Curve().NewScalar(yHex)
+		y, err := suite.Curve().NewScalar(padScalarBytes(yHex, suite.Curve().ScalarSize()))
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -643,7 +643,7 @@ func TestSPAKE2PlusVectors(t *testing.T) {
 		serverIdentity := []byte(testVector.ServerIdentity)
 		password := []byte(testVector.Password)
 		salt := []byte(testVector.MHF.Salt)
-		aad := []byte{}
+		aad := []byte(testVector.KDF.AAD)
 
 		xHex, err := hex.DecodeString(testVector.X)
 		if !assert.NoError(t, err) {
