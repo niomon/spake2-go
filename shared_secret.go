@@ -2,16 +2,10 @@ package spake2go
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 
 	"authcore.io/spake2go/internal/ciphersuite"
 )
-
-func appendLenAndContent(b *bytes.Buffer, input []byte) {
-	binary.Write(b, binary.LittleEndian, uint64(len(input)))
-	b.Write(input)
-}
 
 func confirmationMACs(ka, aad []byte, suite ciphersuite.CipherSuite) ([]byte, []byte) {
 	info := []byte("ConfirmationKeys")

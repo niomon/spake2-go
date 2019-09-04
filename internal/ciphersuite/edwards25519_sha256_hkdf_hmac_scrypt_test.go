@@ -27,5 +27,5 @@ func TestNeg(t *testing.T) {
 	suite := Ed25519Sha256HkdfHmacScrypt{&Scrypt{16, 1, 1}}
 	scalar := suite.Curve().RandomScalar()
 	scalarNeg := scalar.Neg()
-	assert.Equal(t, scalar, scalarNeg.Neg())
+	assert.Equal(t, scalar.Bytes(), scalarNeg.Neg().Bytes())
 }

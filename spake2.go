@@ -1,8 +1,6 @@
 package spake2go
 
 import (
-	"encoding/binary"
-
 	"authcore.io/spake2go/internal/ciphersuite"
 )
 
@@ -172,11 +170,16 @@ func (s SPAKE2) ComputeVerifier(password, salt []byte) ([]byte, error) {
 func (s SPAKE2Plus) startClient(clientIdentity, serverIdentity, password, salt, aad []byte, x ciphersuite.Scalar) (*ClientPlusState, []byte, error) {
 	w0, w1, err := s.computeW0W1(clientIdentity, serverIdentity, password, salt)
 	if err != nil {
-		return nil, []byte{}, err
+		return nil, nil, err
 	}
-	msgX := s.suite.Curve().P().ScalarMul(x).Add(s.suite.Curve().M().ScalarMul(w0))
+	w0Scalar, err := s.suite.Curve().NewScalar(padScalarBytes(w0, s.suite.Curve().ScalarSize()))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	msgX := s.suite.Curve().P().ScalarMul(x).Add(s.suite.Curve().M().ScalarMul(w0Scalar))
 	msgXBytes := msgX.Bytes()
-	return &ClientPlusState{s.suite, x, clientIdentity, serverIdentity, w0.Bytes(), w1.Bytes(), msgXBytes, aad}, msgXBytes, nil
+	return &ClientPlusState{s.suite, x, clientIdentity, serverIdentity, w0, w1, msgXBytes, aad}, msgXBytes, nil
 }
 
 // StartClient initializes a new client for SPAKE2+. Returns a SPAKE2+ client state and message.
@@ -201,7 +204,7 @@ func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, password, salt, 
 	return s.startClient(clientIdentity, serverIdentity, password, salt, aad, y)
 }
 
-func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) (ciphersuite.Scalar, ciphersuite.Scalar, error) {
+func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) ([]byte, []byte, error) {
 	wBytes, err := s.suite.Mhf(
 		concat(password, clientIdentity, serverIdentity),
 		salt,
@@ -209,14 +212,8 @@ func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt [
 	if err != nil {
 		return nil, nil, err
 	}
-	w0, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), wBytes[:16]...))
-	if err != nil {
-		return nil, nil, err
-	}
-	w1, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), wBytes[16:]...))
-	if err != nil {
-		return nil, nil, err
-	}
+	hashSize := s.suite.Curve().HashSize() / 2
+	w0, w1 := wBytes[:hashSize], wBytes[hashSize:]
 	return w0, w1, nil
 }
 
@@ -228,20 +225,12 @@ func (s SPAKE2Plus) ComputeVerifier(password, salt, clientIdentity, serverIdenti
 		return nil, nil, err
 	}
 
-	P := s.suite.Curve().P()
-	L := P.ScalarMul(w1)
-	return w0.Bytes()[16:], L.Bytes(), nil
-}
-
-func concat(bytesArray ...[]byte) []byte {
-	result := []byte{}
-	for _, bytes := range bytesArray {
-		if len(bytes) > 0 {
-			bytesLen := make([]byte, 8)
-			binary.LittleEndian.PutUint64(bytesLen, uint64(len(bytes)))
-			result = append(result, bytesLen...)
-			result = append(result, bytes...)
-		}
+	w1Scalar, err := s.suite.Curve().NewScalar(padScalarBytes(w1, s.suite.Curve().ScalarSize()))
+	if err != nil {
+		return nil, nil, err
 	}
-	return result
+
+	P := s.suite.Curve().P()
+	L := P.ScalarMul(w1Scalar)
+	return w0, L.Bytes(), nil
 }

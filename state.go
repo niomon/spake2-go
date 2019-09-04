@@ -65,12 +65,12 @@ func (s ClientPlusState) Finish(incomingMessage []byte) (*ClientSharedSecret, er
 		return nil, errors.New("Corrupt Message")
 	}
 
-	w0Scalar, err := s.suite.Curve().NewScalar(s.verifierW0)
+	w0Scalar, err := s.suite.Curve().NewScalar(padScalarBytes(s.verifierW0, s.suite.Curve().ScalarSize()))
 	if err != nil {
 		return nil, err
 	}
 
-	w1Scalar, err := s.suite.Curve().NewScalar(s.verifierW1)
+	w1Scalar, err := s.suite.Curve().NewScalar(padScalarBytes(s.verifierW1, s.suite.Curve().ScalarSize()))
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (s ServerPlusState) Finish(incomingMessage []byte) (*ServerSharedSecret, er
 		return nil, errors.New("Corrupt Message")
 	}
 
-	w0Scalar, err := s.suite.Curve().NewScalar(s.verifierW0)
+	w0Scalar, err := s.suite.Curve().NewScalar(padScalarBytes(s.verifierW0, s.suite.Curve().ScalarSize()))
 	if err != nil {
 		return nil, err
 	}
