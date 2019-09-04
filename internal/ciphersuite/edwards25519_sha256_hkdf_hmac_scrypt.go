@@ -242,6 +242,21 @@ func (c Ed25519) NewScalar(p []byte) (Scalar, error) {
 	return Ed25519Scalar{v: pKyberSc}, nil
 }
 
+// HashSize returns the size of hashes.
+func (c Ed25519) HashSize() int {
+	return 32
+}
+
+// ScalarSize returns the size of scalars.
+func (c Ed25519) ScalarSize() int {
+	return 32
+}
+
+// PointSize returns the size of points.
+func (c Ed25519) PointSize() int {
+	return 32
+}
+
 func reverse(p []byte) []byte {
 	q := make([]byte, len(p))
 	for i := 0; 2*i < len(p); i++ {

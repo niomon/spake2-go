@@ -18,6 +18,9 @@ type Curve interface {
 	RandomScalar() Scalar
 	NewPoint([]byte) (Point, error)
 	NewScalar([]byte) (Scalar, error)
+	HashSize() int
+	ScalarSize() int
+	PointSize() int
 }
 
 // Point is an interface for a point on the elliptic curve.
