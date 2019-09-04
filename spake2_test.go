@@ -2,7 +2,6 @@ package spake2go
 
 import (
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -81,7 +80,6 @@ func TestSPAKE2(t *testing.T) {
 	}
 
 	verifier, err := s.ComputeVerifier(password, salt)
-	fmt.Println("w: ", verifier)
 	if !assert.Equal(t, expectedVerifier, verifier) {
 		return
 	}
@@ -134,7 +132,6 @@ func TestSPAKE2(t *testing.T) {
 	}
 
 	verifier, err = s.ComputeVerifier(password, salt)
-	fmt.Println("w: ", verifier)
 	if !assert.Equal(t, expectedVerifier, verifier) {
 		return
 	}
@@ -438,7 +435,7 @@ func TestSPAKE2Plus(t *testing.T) {
 	password := []byte("password")
 	salt := []byte("NaCl")
 	aad := []byte("")
-	expectedVerifierW0, err := hex.DecodeString("000000000000000000000000000000007329b4dddcffdf5d3942a223ee58fa39")
+	expectedVerifierW0, err := hex.DecodeString("7329b4dddcffdf5d3942a223ee58fa39")
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -715,7 +712,7 @@ func TestSPAKE2PlusVectors(t *testing.T) {
 			return
 		}
 
-		// Creates a SPAKE2 client and a SPAKE2 server.
+		// Creates a SPAKE2+ client and a SPAKE2+ server.
 		stateA, messageA, err := s.startClient(clientIdentity, serverIdentity, password, salt, aad, x)
 		if !assert.NoError(t, err) || !assert.Equal(t, expectedMessageA, messageA) {
 			return

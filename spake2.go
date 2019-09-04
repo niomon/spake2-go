@@ -1,7 +1,6 @@
 package spake2go
 
 import (
-	"bytes"
 	"encoding/binary"
 
 	"authcore.io/spake2go/internal/ciphersuite"
@@ -171,7 +170,7 @@ func (s SPAKE2) ComputeVerifier(password, salt []byte) ([]byte, error) {
 }
 
 func (s SPAKE2Plus) startClient(clientIdentity, serverIdentity, password, salt, aad []byte, x ciphersuite.Scalar) (*ClientPlusState, []byte, error) {
-	w0, w1, err := s.computeW0W1(password, salt, clientIdentity, serverIdentity)
+	w0, w1, err := s.computeW0W1(clientIdentity, serverIdentity, password, salt)
 	if err != nil {
 		return nil, []byte{}, err
 	}
@@ -187,7 +186,7 @@ func (s SPAKE2Plus) StartClient(clientIdentity, serverIdentity, password, salt, 
 }
 
 func (s SPAKE2Plus) startServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad []byte, y ciphersuite.Scalar) (*ServerPlusState, []byte, error) {
-	w0, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), verifierW0[:16]...))
+	w0, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), verifierW0...))
 	if err != nil {
 		return nil, []byte{}, err
 	}
@@ -231,7 +230,7 @@ func (s SPAKE2Plus) ComputeVerifier(password, salt, clientIdentity, serverIdenti
 
 	P := s.suite.Curve().P()
 	L := P.ScalarMul(w1)
-	return w0.Bytes(), L.Bytes(), nil
+	return w0.Bytes()[16:], L.Bytes(), nil
 }
 
 func concat(bytesArray ...[]byte) []byte {
@@ -245,9 +244,4 @@ func concat(bytesArray ...[]byte) []byte {
 		}
 	}
 	return result
-}
-
-// unused by now, currently force server store 32 bytes of both. to be fixed
-func unpad(bytesArray []byte) []byte {
-	return bytes.TrimLeft(bytesArray, "\x00")
 }
