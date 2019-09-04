@@ -151,7 +151,7 @@ func (s ClientSharedSecret) Bytes() []byte {
 
 // GetConfirmation gets a confirmation message for the key confirmation.
 func (s ServerSharedSecret) GetConfirmation() []byte {
-	return s.kcB
+	return s.suite.Mac(s.kcB, s.transcript)
 }
 
 // Verify verifies an incoming confirmation message.

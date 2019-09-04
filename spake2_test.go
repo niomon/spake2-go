@@ -106,6 +106,56 @@ func TestSPAKE2(t *testing.T) {
 
 	// A and B have a common shared secret.
 	assert.Equal(t, sharedSecretA.Bytes(), sharedSecretB.Bytes())
+
+	// Test not plugged x,y
+	// Creates a SPAKE2 instance
+	s, err = NewSPAKE2(suite)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	verifier, err = s.ComputeVerifier(password, salt)
+	fmt.Println("w: ", verifier)
+	if !assert.Equal(t, expectedVerifier, verifier) {
+		return
+	}
+
+	// Creates a SPAKE2 client and a SPAKE2 server.
+	stateA, messageA, err = s.StartClient(clientIdentity, serverIdentity, password, salt, aad)
+	if !assert.NoError(t, err) {
+		return
+	}
+	stateB, messageB, err = s.StartServer(clientIdentity, serverIdentity, verifier, aad)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// A and B verify the incoming message from each other.
+	sharedSecretA, err = stateA.Finish(messageB)
+	if !assert.NoError(t, err) {
+		return
+	}
+	sharedSecretB, err = stateB.Finish(messageA)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// A and B verify the confirmation message from each other.
+	confirmationA = sharedSecretA.GetConfirmation()
+	confirmationB = sharedSecretB.GetConfirmation()
+
+	err = sharedSecretA.Verify(confirmationB)
+	if !assert.NoError(t, err) {
+		return
+	}
+	err = sharedSecretB.Verify(confirmationA)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// A and B have a common shared secret.
+	assert.Equal(t, sharedSecretA.Bytes(), sharedSecretB.Bytes())
+
 }
 
 func TestSPAKE2WithWrongPassword(t *testing.T) {
@@ -392,12 +442,13 @@ func TestSPAKE2Plus(t *testing.T) {
 		return
 	}
 
+	one, _ := suite.Curve().NewScalar([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1})
 	// Creates a SPAKE2 client and a SPAKE2 server.
-	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, password, salt, aad)
+	stateA, messageA, err := s.startClient(clientIdentity, serverIdentity, password, salt, aad, one)
 	if !assert.NoError(t, err) {
 		return
 	}
-	stateB, messageB, err := s.StartServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad)
+	stateB, messageB, err := s.startServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad, one)
 	if !assert.NoError(t, err) {
 		return
 	}
