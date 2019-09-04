@@ -105,26 +105,34 @@ func NewSPAKE2Plus(suite ciphersuite.CipherSuite) (*SPAKE2Plus, error) {
 	return &SPAKE2Plus{suite}, nil
 }
 
-// StartClient initializes a new client for SPAKE2. Returns a SPAKE2 client state and message.
-func (s SPAKE2) StartClient(clientIdentity, serverIdentity, password, salt []byte) (*ClientState, []byte, error) {
+func (s SPAKE2) startClient(clientIdentity, serverIdentity, password, salt []byte, x ciphersuite.Scalar) (*ClientState, []byte, error) {
 	w, err := s.computeW(password, salt)
 	if err != nil {
 		return nil, []byte{}, err
 	}
-	x := s.suite.Curve().RandomScalar()
 	T := s.suite.Curve().P().ScalarMul(x).Add(s.suite.Curve().M().ScalarMul(w))
 	return &ClientState{s.suite, x, clientIdentity, serverIdentity, w}, T.Bytes(), nil
 }
 
-// StartServer initializes a new server for SPAKE2. Returns a SPAKE2 server state and message.
-func (s SPAKE2) StartServer(clientIdentity, serverIdentity, verifier []byte) (*ServerState, []byte, error) {
+// StartClient initializes a new client for SPAKE2. Returns a SPAKE2 client state and message.
+func (s SPAKE2) StartClient(clientIdentity, serverIdentity, password, salt []byte) (*ClientState, []byte, error) {
+	x := s.suite.Curve().RandomScalar()
+	return s.startClient(clientIdentity, serverIdentity, password, salt, x)
+}
+
+func (s SPAKE2) startServer(clientIdentity, serverIdentity, verifier []byte, y ciphersuite.Scalar) (*ServerState, []byte, error) {
 	w, err := s.suite.Curve().NewScalar(verifier)
 	if err != nil {
 		return nil, []byte{}, err
 	}
-	y := s.suite.Curve().RandomScalar()
 	S := s.suite.Curve().P().ScalarMul(y).Add(s.suite.Curve().N().ScalarMul(w))
 	return &ServerState{s.suite, y, clientIdentity, serverIdentity, verifier}, S.Bytes(), nil
+}
+
+// StartServer initializes a new server for SPAKE2. Returns a SPAKE2 server state and message.
+func (s SPAKE2) StartServer(clientIdentity, serverIdentity, verifier []byte) (*ServerState, []byte, error) {
+	y := s.suite.Curve().RandomScalar()
+	return s.startServer(clientIdentity, serverIdentity, verifier, y)
 }
 
 func (s SPAKE2) computeW(password, salt []byte) (ciphersuite.Scalar, error) {
