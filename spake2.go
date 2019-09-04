@@ -179,6 +179,7 @@ func (s SPAKE2Plus) StartClient(clientIdentity, serverIdentity, password, salt, 
 // StartServer initializes a new server for SPAKE2+. Returns a SPAKE2+ server state and message.
 func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad []byte) (*ServerPlusState, []byte, error) {
 	y := s.suite.Curve().RandomScalar()
+
 	w0, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), verifierW0[:16]...))
 	if err != nil {
 		return nil, []byte{}, err
@@ -217,7 +218,7 @@ func (s SPAKE2Plus) ComputeVerifier(password, salt, clientIdentity, serverIdenti
 
 	P := s.suite.Curve().P()
 	L := P.ScalarMul(w1)
-	return unpad(w0.Bytes()), unpad(L.Bytes()), nil
+	return w0.Bytes(), L.Bytes(), nil
 }
 
 func concat(bytesArray ...[]byte) []byte {
@@ -233,6 +234,7 @@ func concat(bytesArray ...[]byte) []byte {
 	return result
 }
 
+// unused by now, currently force server store 32 bytes of both. to be fixed
 func unpad(bytesArray []byte) []byte {
 	return bytes.TrimLeft(bytesArray, "\x00")
 }

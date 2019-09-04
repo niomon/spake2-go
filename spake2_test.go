@@ -2,6 +2,7 @@ package spake2go
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -61,16 +62,21 @@ func TestSPAKE2(t *testing.T) {
 	}
 
 	verifier, err := s.ComputeVerifier(password, salt)
+	fmt.Println("w: ", verifier)
 	if !assert.Equal(t, expectedVerifier, verifier) {
 		return
 	}
 
 	// Creates a SPAKE2 client and a SPAKE2 server.
-	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, password, salt, aad)
+	one, err := suite.Curve().NewScalar([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1})
 	if !assert.NoError(t, err) {
 		return
 	}
-	stateB, messageB, err := s.StartServer(clientIdentity, serverIdentity, verifier, aad)
+	stateA, messageA, err := s.startClient(clientIdentity, serverIdentity, password, salt, aad, one)
+	if !assert.NoError(t, err) {
+		return
+	}
+	stateB, messageB, err := s.startServer(clientIdentity, serverIdentity, verifier, aad, one)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -363,7 +369,7 @@ func TestSPAKE2Plus(t *testing.T) {
 	password := []byte("password")
 	salt := []byte("NaCl")
 	aad := []byte("")
-	expectedVerifierW0, err := hex.DecodeString("7329b4dddcffdf5d3942a223ee58fa39")
+	expectedVerifierW0, err := hex.DecodeString("000000000000000000000000000000007329b4dddcffdf5d3942a223ee58fa39")
 	if !assert.NoError(t, err) {
 		return
 	}

@@ -22,3 +22,10 @@ func TestConversion(t *testing.T) {
 	}
 	assert.Equal(t, scalar.Bytes(), scalarAfterConv.Bytes())
 }
+
+func TestNeg(t *testing.T) {
+	suite := Ed25519Sha256HkdfHmacScrypt{&Scrypt{16, 1, 1}}
+	scalar := suite.Curve().RandomScalar()
+	scalarNeg := scalar.Neg()
+	assert.Equal(t, scalar, scalarNeg.Neg())
+}

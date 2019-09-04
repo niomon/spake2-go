@@ -21,11 +21,10 @@ func (s ClientState) Finish(incomingMessage []byte) (*ClientSharedSecret, error)
 		return nil, err
 	}
 
-	//  K = x*(S-wN)
+	//  K = (S+N*(-w))*x
 	tmp := incomingElement.Add(s.suite.Curve().N().ScalarMul(verifierScalar.Neg()))
 	keyElement := tmp.ScalarMul(s.x)
 	keyBytes := keyElement.Bytes()
-
 	return NewFromClientState(s.clientIdentity, s.serverIdentity, incomingMessage, s.msgT, keyBytes, s.verifier, s.aad, s.suite), nil
 }
 
