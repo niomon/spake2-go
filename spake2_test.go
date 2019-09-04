@@ -189,12 +189,13 @@ func TestSPAKE2WithWrongClientIdentity(t *testing.T) {
 
 func TestSPAKE2WithWrongServerIdentity(t *testing.T) {
 	// Defines the cipher suite
-	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
+	suite := Ed25519Sha256HkdfHmacScrypt(Scrypt(16, 1, 1))
 
 	clientIdentity := []byte("client")
 	serverIdentity := []byte("server")
 	password := []byte("password")
 	salt := []byte("NaCl")
+	aad := []byte{}
 
 	// Creates a SPAKE2 instance
 	s, err := NewSPAKE2(suite)
@@ -204,11 +205,11 @@ func TestSPAKE2WithWrongServerIdentity(t *testing.T) {
 	verifier, err := s.ComputeVerifier(password, salt)
 
 	// Creates a SPAKE2 client and a SPAKE2 server.
-	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, password, salt)
+	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, password, salt, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
-	stateB, messageB, err := s.StartServer(clientIdentity, []byte("another_server"), verifier)
+	stateB, messageB, err := s.StartServer(clientIdentity, []byte("another_server"), verifier, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -240,7 +241,6 @@ func TestSPAKE2Vectors(t *testing.T) {
 	for _, testVector := range testVectors {
 		// Defines the cipher suite
 		suite := Ed25519Sha256HkdfHmacScrypt(
-			Hkdf([]byte{}),
 			Scrypt(testVector.MHF.N, testVector.MHF.R, testVector.MHF.P),
 		)
 
@@ -248,6 +248,7 @@ func TestSPAKE2Vectors(t *testing.T) {
 		serverIdentity := []byte(testVector.ServerIdentity)
 		password := []byte(testVector.Password)
 		salt := []byte(testVector.MHF.Salt)
+		aad := []byte{}
 
 		xHex, err := hex.DecodeString(testVector.X)
 		if !assert.NoError(t, err) {
@@ -310,11 +311,11 @@ func TestSPAKE2Vectors(t *testing.T) {
 		}
 
 		// Creates a SPAKE2 client and a SPAKE2 server.
-		stateA, messageA, err := s.startClient(clientIdentity, serverIdentity, password, salt, x)
+		stateA, messageA, err := s.startClient(clientIdentity, serverIdentity, password, salt, aad, x)
 		if !assert.NoError(t, err) || !assert.Equal(t, expectedMessageA, messageA) {
 			return
 		}
-		stateB, messageB, err := s.startServer(clientIdentity, serverIdentity, verifier, y)
+		stateB, messageB, err := s.startServer(clientIdentity, serverIdentity, verifier, aad, y)
 		if !assert.NoError(t, err) || !assert.Equal(t, expectedMessageB, messageB) {
 			return
 		}
@@ -424,12 +425,13 @@ func TestSPAKE2Plus(t *testing.T) {
 
 func TestSPAKE2PlusWithWrongPassword(t *testing.T) {
 	// Defines the cipher suite
-	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
+	suite := Ed25519Sha256HkdfHmacScrypt(Scrypt(16, 1, 1))
 
 	clientIdentity := []byte("client")
 	serverIdentity := []byte("server")
 	password := []byte("password")
 	salt := []byte("NaCl")
+	aad := []byte{}
 
 	// Creates a SPAKE2+ instance
 	s, err := NewSPAKE2Plus(suite)
@@ -439,11 +441,11 @@ func TestSPAKE2PlusWithWrongPassword(t *testing.T) {
 	verifierW0, verifierL, err := s.ComputeVerifier(password, salt, clientIdentity, serverIdentity)
 
 	// Creates a SPAKE2+ client and a SPAKE2+ server.
-	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, []byte("a_wrong_password"), salt)
+	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, []byte("a_wrong_password"), salt, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
-	stateB, messageB, err := s.StartServer(clientIdentity, serverIdentity, verifierW0, verifierL)
+	stateB, messageB, err := s.StartServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -466,12 +468,13 @@ func TestSPAKE2PlusWithWrongPassword(t *testing.T) {
 
 func TestSPAKE2PlusWithWrongClientIdentity(t *testing.T) {
 	// Defines the cipher suite
-	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
+	suite := Ed25519Sha256HkdfHmacScrypt(Scrypt(16, 1, 1))
 
 	clientIdentity := []byte("client")
 	serverIdentity := []byte("server")
 	password := []byte("password")
 	salt := []byte("NaCl")
+	aad := []byte{}
 
 	// Creates a SPAKE2 instance
 	s, err := NewSPAKE2Plus(suite)
@@ -481,11 +484,11 @@ func TestSPAKE2PlusWithWrongClientIdentity(t *testing.T) {
 	verifierW0, verifierL, err := s.ComputeVerifier(password, salt, clientIdentity, serverIdentity)
 
 	// Creates a SPAKE2 client and a SPAKE2 server.
-	stateA, messageA, err := s.StartClient([]byte("another_client"), serverIdentity, password, salt)
+	stateA, messageA, err := s.StartClient([]byte("another_client"), serverIdentity, password, salt, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
-	stateB, messageB, err := s.StartServer(clientIdentity, serverIdentity, verifierW0, verifierL)
+	stateB, messageB, err := s.StartServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -508,12 +511,13 @@ func TestSPAKE2PlusWithWrongClientIdentity(t *testing.T) {
 
 func TestSPAKE2PlusWithWrongServerIdentity(t *testing.T) {
 	// Defines the cipher suite
-	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
+	suite := Ed25519Sha256HkdfHmacScrypt(Scrypt(16, 1, 1))
 
 	clientIdentity := []byte("client")
 	serverIdentity := []byte("server")
 	password := []byte("password")
 	salt := []byte("NaCl")
+	aad := []byte{}
 
 	// Creates a SPAKE2 instance
 	s, err := NewSPAKE2Plus(suite)
@@ -523,11 +527,11 @@ func TestSPAKE2PlusWithWrongServerIdentity(t *testing.T) {
 	verifierW0, verifierL, err := s.ComputeVerifier(password, salt, clientIdentity, serverIdentity)
 
 	// Creates a SPAKE2 client and a SPAKE2 server.
-	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, password, salt)
+	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, password, salt, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
-	stateB, messageB, err := s.StartServer(clientIdentity, []byte("another_server"), verifierW0, verifierL)
+	stateB, messageB, err := s.StartServer(clientIdentity, []byte("another_server"), verifierW0, verifierL, aad)
 	if !assert.NoError(t, err) {
 		return
 	}
