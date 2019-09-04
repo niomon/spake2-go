@@ -68,6 +68,90 @@ func TestSPAKE2(t *testing.T) {
 	assert.Equal(t, sharedSecretA.Bytes(), sharedSecretB.Bytes())
 }
 
+func TestSPAKE2WithWrongPassword(t *testing.T) {
+	// Defines the cipher suite
+	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
+
+	clientIdentity := []byte("client")
+	serverIdentity := []byte("server")
+	password := []byte("password")
+	salt := []byte("NaCl")
+
+	// Creates a SPAKE2 instance
+	s, err := NewSPAKE2(suite)
+	if !assert.NoError(t, err) {
+		return
+	}
+	verifier, err := s.ComputeVerifier(password, salt)
+
+	// Creates a SPAKE2 client and a SPAKE2 server.
+	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, []byte("a_wrong_password"), salt)
+	if !assert.NoError(t, err) {
+		return
+	}
+	stateB, messageB, err := s.StartServer(clientIdentity, serverIdentity, verifier)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// A and B verify the incoming message from each other.
+	sharedSecretA, err := stateA.Finish(messageB)
+	if !assert.NoError(t, err) {
+		return
+	}
+	sharedSecretB, err := stateB.Finish(messageA)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// B verifies the confirmation message from A - and fails.
+	confirmationA := sharedSecretA.GetConfirmation()
+	err = sharedSecretB.Verify(confirmationA)
+	assert.Error(t, err)
+}
+
+func TestSPAKE2WithWrongServerIdentity(t *testing.T) {
+	// Defines the cipher suite
+	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
+
+	clientIdentity := []byte("client")
+	serverIdentity := []byte("server")
+	password := []byte("password")
+	salt := []byte("NaCl")
+
+	// Creates a SPAKE2 instance
+	s, err := NewSPAKE2(suite)
+	if !assert.NoError(t, err) {
+		return
+	}
+	verifier, err := s.ComputeVerifier(password, salt)
+
+	// Creates a SPAKE2 client and a SPAKE2 server.
+	stateA, messageA, err := s.StartClient(clientIdentity, serverIdentity, password, salt)
+	if !assert.NoError(t, err) {
+		return
+	}
+	stateB, messageB, err := s.StartServer(clientIdentity, []byte("another_server"), verifier)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// A and B verify the incoming message from each other.
+	sharedSecretA, err := stateA.Finish(messageB)
+	if !assert.NoError(t, err) {
+		return
+	}
+	sharedSecretB, err := stateB.Finish(messageA)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// B verifies the confirmation message from A - and fails.
+	confirmationA := sharedSecretA.GetConfirmation()
+	err = sharedSecretB.Verify(confirmationA)
+	assert.Error(t, err)
+}
+
 func TestSPAKE2Plus(t *testing.T) {
 	// Defines the cipher suite
 	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
@@ -134,19 +218,4 @@ func TestSPAKE2Plus(t *testing.T) {
 
 	// A and B have a common shared secret.
 	assert.Equal(t, sharedSecretA.Bytes(), sharedSecretB.Bytes())
-}
-
-func TestXXX(t *testing.T) {
-	suite := Ed25519Sha256HkdfHmacScrypt(Hkdf([]byte{}), Scrypt(16, 1, 1))
-	s, _ := NewSPAKE2Plus(suite)
-
-	wBytes, err := s.suite.Mhf(
-		concat([]byte("password"), []byte("client"), []byte("server")),
-		[]byte("NaCl"),
-	)
-	t.Log(wBytes[:16])
-	t.Log(err)
-
-	x := s.suite.Curve().RandomScalar().Add(s.suite.Curve().RandomScalar()).Bytes()
-	t.Log(x)
 }

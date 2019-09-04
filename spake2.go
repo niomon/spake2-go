@@ -28,7 +28,7 @@ type ClientState struct {
 	x              ciphersuite.Scalar
 	clientIdentity []byte
 	serverIdentity []byte
-	verifier       []byte
+	w              ciphersuite.Scalar
 }
 
 // ServerState defines an intermediate state for SPAKE2. The `Finish` method takes a message from
@@ -107,18 +107,24 @@ func NewSPAKE2Plus(suite ciphersuite.CipherSuite) (*SPAKE2Plus, error) {
 
 // StartClient initializes a new client for SPAKE2. Returns a SPAKE2 client state and message.
 func (s SPAKE2) StartClient(clientIdentity, serverIdentity, password, salt []byte) (*ClientState, []byte, error) {
-	verifier, err := s.ComputeVerifier(password, salt)
+	w, err := s.computeW(password, salt)
 	if err != nil {
 		return nil, []byte{}, err
 	}
 	x := s.suite.Curve().RandomScalar()
-	return &ClientState{s.suite, x, clientIdentity, serverIdentity, verifier}, []byte{}, nil
+	T := s.suite.Curve().P().ScalarMul(x).Add(s.suite.Curve().M().ScalarMul(w))
+	return &ClientState{s.suite, x, clientIdentity, serverIdentity, w}, T.Bytes(), nil
 }
 
 // StartServer initializes a new server for SPAKE2. Returns a SPAKE2 server state and message.
 func (s SPAKE2) StartServer(clientIdentity, serverIdentity, verifier []byte) (*ServerState, []byte, error) {
+	w, err := s.suite.Curve().NewScalar(verifier)
+	if err != nil {
+		return nil, []byte{}, err
+	}
 	y := s.suite.Curve().RandomScalar()
-	return &ServerState{s.suite, y, clientIdentity, serverIdentity, verifier}, []byte{}, nil
+	S := s.suite.Curve().P().ScalarMul(y).Add(s.suite.Curve().N().ScalarMul(w))
+	return &ServerState{s.suite, y, clientIdentity, serverIdentity, verifier}, S.Bytes(), nil
 }
 
 func (s SPAKE2) computeW(password, salt []byte) (ciphersuite.Scalar, error) {
@@ -145,13 +151,19 @@ func (s SPAKE2Plus) StartClient(clientIdentity, serverIdentity, password, salt [
 		return nil, []byte{}, err
 	}
 	x := s.suite.Curve().RandomScalar()
-	return &ClientPlusState{s.suite, x, clientIdentity, serverIdentity, w0, w1}, []byte{}, nil
+	T := s.suite.Curve().P().ScalarMul(x).Add(s.suite.Curve().M().ScalarMul(w0))
+	return &ClientPlusState{s.suite, x, clientIdentity, serverIdentity, w0, w1}, T.Bytes(), nil
 }
 
 // StartServer initializes a new server for SPAKE2+. Returns a SPAKE2+ server state and message.
 func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, verifierW0 []byte, verifierL []byte) (*ServerPlusState, []byte, error) {
 	y := s.suite.Curve().RandomScalar()
-	return &ServerPlusState{s.suite, y, clientIdentity, serverIdentity, verifierW0, verifierL}, []byte{}, nil
+	w0, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), verifierW0[:16]...))
+	if err != nil {
+		return nil, []byte{}, err
+	}
+	S := s.suite.Curve().P().ScalarMul(y).Add(s.suite.Curve().N().ScalarMul(w0))
+	return &ServerPlusState{s.suite, y, clientIdentity, serverIdentity, verifierW0, verifierL}, S.Bytes(), nil
 }
 
 func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) (ciphersuite.Scalar, ciphersuite.Scalar, error) {
