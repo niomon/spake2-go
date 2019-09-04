@@ -18,7 +18,6 @@ import (
 // SPAKE2 speficiation [irtf-cfrg-spake2-08].
 type Ed25519Sha256HkdfHmacScrypt struct {
 	Scrypt *Scrypt
-	Hkdf   *Hkdf
 }
 
 // Curve returns the Ed25519 curve.

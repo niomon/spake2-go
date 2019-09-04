@@ -93,20 +93,14 @@ type ServerSharedSecret struct {
 	kcB          []byte
 }
 
-// Hkdf returns a struct of the options for HKDF.
-func Hkdf(AAD []byte) *ciphersuite.Hkdf {
-	return &ciphersuite.Hkdf{AAD}
-}
-
 // Scrypt returns a struct of the options for scrypt.
 func Scrypt(N, R, P int) *ciphersuite.Scrypt {
 	return &ciphersuite.Scrypt{N, R, P}
 }
 
 // Ed25519Sha256HkdfHmacScrypt returns a cipher suite for SPAKE2 (or SPAKE2+).
-func Ed25519Sha256HkdfHmacScrypt(hkdf *ciphersuite.Hkdf, scrypt *ciphersuite.Scrypt) *ciphersuite.Ed25519Sha256HkdfHmacScrypt {
+func Ed25519Sha256HkdfHmacScrypt(scrypt *ciphersuite.Scrypt) *ciphersuite.Ed25519Sha256HkdfHmacScrypt {
 	return &ciphersuite.Ed25519Sha256HkdfHmacScrypt{
-		Hkdf:   hkdf,
 		Scrypt: scrypt,
 	}
 }
@@ -194,7 +188,7 @@ func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, verifierW0, veri
 	return &ServerPlusState{s.suite, y, clientIdentity, serverIdentity, verifierW0, verifierL, msgYBytes, aad}, msgYBytes, nil
 }
 
-func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) ([]byte, []byte, error) {
+func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) (ciphersuite.Scalar, ciphersuite.Scalar, error) {
 	wBytes, err := s.suite.Mhf(
 		concat(password, clientIdentity, serverIdentity),
 		salt,
@@ -210,7 +204,7 @@ func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt [
 	if err != nil {
 		return nil, nil, err
 	}
-	return w0.Bytes(), w1.Bytes(), nil
+	return w0, w1, nil
 }
 
 // ComputeVerifier computes a verifier for SPAKE2 from password, salt and identities of the client
@@ -221,14 +215,9 @@ func (s SPAKE2Plus) ComputeVerifier(password, salt, clientIdentity, serverIdenti
 		return nil, nil, err
 	}
 
-	w1Scalar, err := s.suite.Curve().NewScalar(w1)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	P := s.suite.Curve().P()
-	L := P.ScalarMul(w1Scalar)
-	return unpad(w0), unpad(L.Bytes()), nil
+	L := P.ScalarMul(w1)
+	return unpad(w0.Bytes()), unpad(L.Bytes()), nil
 }
 
 func concat(bytesArray ...[]byte) []byte {

@@ -37,11 +37,6 @@ type Scalar interface {
 	Neg() Scalar
 }
 
-// Hkdf is a struct of the options for HKDF.
-type Hkdf struct {
-	AAD []byte
-}
-
 // Scrypt is a struct of the options for scrypt.
 type Scrypt struct {
 	N, R, P int
