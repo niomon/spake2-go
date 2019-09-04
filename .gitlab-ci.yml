@@ -1,0 +1,12 @@
+stages:
+  - test
+
+test:
+  stage: test
+  image: golang:1.12
+  script:
+    - scripts/test.sh
+    # - scripts/lint.sh
+  coverage: '/total:\s+\(statements\)\s+\d+.\d+\%/'
+  variables:
+    GOPATH: ${CI_PROJECT_DIR}/go
