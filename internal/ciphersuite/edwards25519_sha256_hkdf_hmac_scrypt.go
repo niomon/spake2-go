@@ -49,6 +49,11 @@ func (s Ed25519Sha256HkdfHmacScrypt) Mac(content, secret []byte) []byte {
 	return hash[:]
 }
 
+// MacEqual checks two MACs are equal without leaking timing information
+func (s Ed25519Sha256HkdfHmacScrypt) MacEqual(a, b []byte) bool {
+	return hmac.Equal(a, b)
+}
+
 // Mhf computes a derived password from password and salt.
 func (s Ed25519Sha256HkdfHmacScrypt) Mhf(password, salt []byte) ([]byte, error) {
 	return scrypt.Key(password, salt, s.Scrypt.N, s.Scrypt.R, s.Scrypt.P, 32)
@@ -103,7 +108,8 @@ func (p Ed25519Point) ScalarMul(t Scalar) Point {
 func (p Ed25519Point) IsInfinity() bool {
 	group := suites.MustFind("Ed25519")
 	point := group.Point().Set(p.v)
-	return point.Equal(point.Null())
+	null := group.Point().Null()
+	return point.Equal(null)
 }
 
 // IsSmallOrder checks if a point is of small order.

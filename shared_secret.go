@@ -49,7 +49,7 @@ func NewFromClientState(idA, idB, S, T, K, w, aad []byte, suite ciphersuite.Ciph
 }
 
 // NewFromServerState gets a ServerSharedSecret from ServerState
-func NewFromServerState(idA, idB, s, t, k, w, aad []byte, suite ciphersuite.CipherSuite) *ServerSharedSecret {
+func NewFromServerState(idA, idB, S, T, K, w, aad []byte, suite ciphersuite.CipherSuite) *ServerSharedSecret {
 	// transcript = len(A) || A || len(B) || B || len(S) || S || len(T) || T || len(K)
 	// || K || len(w) || w
 	transcript := new(bytes.Buffer)
@@ -59,9 +59,9 @@ func NewFromServerState(idA, idB, s, t, k, w, aad []byte, suite ciphersuite.Ciph
 	if len(idB) != 0 {
 		appendLenAndContent(transcript, idB)
 	}
-	appendLenAndContent(transcript, s)
-	appendLenAndContent(transcript, t)
-	appendLenAndContent(transcript, k)
+	appendLenAndContent(transcript, S)
+	appendLenAndContent(transcript, T)
+	appendLenAndContent(transcript, K)
 	appendLenAndContent(transcript, w)
 
 	transcriptBytes := transcript.Bytes()
@@ -133,12 +133,12 @@ func NewFromServerPlusState(idA, idB, X, Y, Z, V, w0, aad []byte, suite ciphersu
 
 // GetConfirmation gets a confirmation message for the key confirmation.
 func (s ClientSharedSecret) GetConfirmation() []byte {
-	return s.kcA
+	return s.suite.Mac(s.kcA, s.transcript)
 }
 
 // Verify verifies an incoming confirmation message.
 func (s ClientSharedSecret) Verify(incomingConfirmation []byte) error {
-	if !bytes.Equal(incomingConfirmation, s.kcB) {
+	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.kcB, s.transcript)) {
 		return errors.New("Verification Failed")
 	}
 	return nil
@@ -156,7 +156,7 @@ func (s ServerSharedSecret) GetConfirmation() []byte {
 
 // Verify verifies an incoming confirmation message.
 func (s ServerSharedSecret) Verify(incomingConfirmation []byte) error {
-	if !bytes.Equal(incomingConfirmation, s.kcA) {
+	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.kcA, s.transcript)) {
 		return errors.New("Verification Failed")
 	}
 	return nil

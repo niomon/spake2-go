@@ -6,6 +6,7 @@ type CipherSuite interface {
 	HashDigest([]byte) []byte
 	DeriveKey([]byte, []byte, []byte) []byte
 	Mac([]byte, []byte) []byte
+	MacEqual([]byte, []byte) bool
 	Mhf([]byte, []byte) ([]byte, error)
 }
 
