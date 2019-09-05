@@ -199,9 +199,9 @@ func (s SPAKE2Plus) startServer(clientIdentity, serverIdentity, verifierW0, veri
 }
 
 // StartServer initializes a new server for SPAKE2+. Returns a SPAKE2+ server state and message.
-func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, password, salt, aad []byte) (*ClientPlusState, []byte, error) {
+func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, password, salt, aad []byte) (*ServerPlusState, []byte, error) {
 	y := s.suite.Curve().RandomScalar()
-	return s.startClient(clientIdentity, serverIdentity, password, salt, aad, y)
+	return s.startServer(clientIdentity, serverIdentity, password, salt, aad, y)
 }
 
 func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) ([]byte, []byte, error) {
