@@ -15,6 +15,14 @@ func confirmationMACs(ka, aad []byte, suite ciphersuite.CipherSuite) ([]byte, []
 	return Kc[:keyLength/2], Kc[keyLength/2:]
 }
 
+func newClientSharedSecret(sharedSecret, keySecret, transcript, aad []byte, suite ciphersuite.CipherSuite) *ClientSharedSecret {
+	return &ClientSharedSecret{suite, transcript, sharedSecret, keySecret, aad, nil, nil}
+}
+
+func newServerSharedSecret(sharedSecret, keySecret, transcript, aad []byte, suite ciphersuite.CipherSuite) *ServerSharedSecret {
+	return &ServerSharedSecret{suite, transcript, sharedSecret, keySecret, aad, nil, nil}
+}
+
 // NewFromClientState gets a ClientSharedSecret from ClientState
 func NewFromClientState(idA, idB, S, T, K, w, aad []byte, suite ciphersuite.CipherSuite) *ClientSharedSecret {
 	// transcript = len(A) || A || len(B) || B || len(S) || S || len(T) || T || len(K)
@@ -37,9 +45,7 @@ func NewFromClientState(idA, idB, S, T, K, w, aad []byte, suite ciphersuite.Ciph
 
 	Ke, Ka := transcriptHash[:blockSize/2], transcriptHash[blockSize/2:]
 
-	KcA, KcB := confirmationMACs(Ka, aad, suite)
-
-	return &ClientSharedSecret{suite, transcriptBytes, Ke, KcA, KcB}
+	return newClientSharedSecret(Ke, Ka, transcriptBytes, aad, suite)
 }
 
 // NewFromServerState gets a ServerSharedSecret from ServerState
@@ -64,9 +70,7 @@ func NewFromServerState(idA, idB, S, T, K, w, aad []byte, suite ciphersuite.Ciph
 
 	Ke, Ka := transcriptHash[:blockSize/2], transcriptHash[blockSize/2:]
 
-	KcA, KcB := confirmationMACs(Ka, aad, suite)
-
-	return &ServerSharedSecret{suite, transcriptBytes, Ke, KcA, KcB}
+	return newServerSharedSecret(Ke, Ka, transcriptBytes, aad, suite)
 }
 
 // NewFromClientPlusState gets a ClientSharedSecret from ClientPlusState
@@ -92,9 +96,7 @@ func NewFromClientPlusState(idA, idB, X, Y, Z, V, w0, aad []byte, suite ciphersu
 
 	Ke, Ka := transcriptHash[:blockSize/2], transcriptHash[blockSize/2:]
 
-	KcA, KcB := confirmationMACs(Ka, aad, suite)
-
-	return &ClientSharedSecret{suite, transcriptBytes, Ke, KcA, KcB}
+	return newClientSharedSecret(Ke, Ka, transcriptBytes, aad, suite)
 }
 
 // NewFromServerPlusState gets a ServerSharedSecret from ServerPlusState
@@ -120,19 +122,37 @@ func NewFromServerPlusState(idA, idB, X, Y, Z, V, w0, aad []byte, suite ciphersu
 
 	Ke, Ka := transcriptHash[:blockSize/2], transcriptHash[blockSize/2:]
 
-	KcA, KcB := confirmationMACs(Ka, aad, suite)
+	return newServerSharedSecret(Ke, Ka, transcriptBytes, aad, suite)
+}
 
-	return &ServerSharedSecret{suite, transcriptBytes, Ke, KcA, KcB}
+func (s *ClientSharedSecret) generateConfirmations() {
+	kcA, kcB := confirmationMACs(s.keySecret, s.aad, s.suite)
+	s.confirmation = s.suite.Mac(s.transcript, kcA)
+	s.remoteConfirmation = s.suite.Mac(s.transcript, kcB)
 }
 
 // GetConfirmation gets a confirmation message for the key confirmation.
-func (s ClientSharedSecret) GetConfirmation() []byte {
-	return s.suite.Mac(s.transcript, s.kcA)
+func (s *ClientSharedSecret) GetConfirmation() []byte {
+	if s.confirmation == nil {
+		s.generateConfirmations()
+	}
+	return s.confirmation
+}
+
+// GetConfirmations gets both confirmation message (confirmation, remoteConfirmation) for possible state save.
+func (s *ClientSharedSecret) GetConfirmations() ([]byte, []byte) {
+	if s.confirmation == nil || s.remoteConfirmation == nil {
+		s.generateConfirmations()
+	}
+	return s.confirmation, s.remoteConfirmation
 }
 
 // Verify verifies an incoming confirmation message.
-func (s ClientSharedSecret) Verify(incomingConfirmation []byte) error {
-	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.transcript, s.kcB)) {
+func (s *ClientSharedSecret) Verify(incomingConfirmation []byte) error {
+	if s.remoteConfirmation == nil {
+		s.generateConfirmations()
+	}
+	if !s.suite.MacEqual(incomingConfirmation, s.remoteConfirmation) {
 		return errors.New("Verification Failed")
 	}
 	return nil
@@ -143,14 +163,34 @@ func (s ClientSharedSecret) Bytes() []byte {
 	return s.sharedSecret
 }
 
+func (s *ServerSharedSecret) generateConfirmations() {
+	kcA, kcB := confirmationMACs(s.keySecret, s.aad, s.suite)
+	s.confirmation = s.suite.Mac(s.transcript, kcB)
+	s.remoteConfirmation = s.suite.Mac(s.transcript, kcA)
+}
+
 // GetConfirmation gets a confirmation message for the key confirmation.
-func (s ServerSharedSecret) GetConfirmation() []byte {
-	return s.suite.Mac(s.transcript, s.kcB)
+func (s *ServerSharedSecret) GetConfirmation() []byte {
+	if s.confirmation == nil {
+		s.generateConfirmations()
+	}
+	return s.confirmation
+}
+
+// GetConfirmations gets both confirmation message (confirmation, remoteConfirmation) for possible state save.
+func (s *ServerSharedSecret) GetConfirmations() ([]byte, []byte) {
+	if s.confirmation == nil || s.remoteConfirmation == nil {
+		s.generateConfirmations()
+	}
+	return s.confirmation, s.remoteConfirmation
 }
 
 // Verify verifies an incoming confirmation message.
-func (s ServerSharedSecret) Verify(incomingConfirmation []byte) error {
-	if !s.suite.MacEqual(incomingConfirmation, s.suite.Mac(s.transcript, s.kcA)) {
+func (s *ServerSharedSecret) Verify(incomingConfirmation []byte) error {
+	if s.remoteConfirmation == nil {
+		s.generateConfirmations()
+	}
+	if !s.suite.MacEqual(incomingConfirmation, s.remoteConfirmation) {
 		return errors.New("Verification Failed")
 	}
 	return nil
@@ -161,4 +201,22 @@ func (s ServerSharedSecret) Bytes() []byte {
 	return s.sharedSecret
 }
 
-// func (s ServerSharedSecret) SetBytes(b []bytes) bool {}
+// Confirmations provides a easy interface for confirmation verification, for state load.
+type Confirmations struct {
+	confirmation       []byte
+	remoteConfirmation []byte
+	suite              ciphersuite.CipherSuite
+}
+
+// Bytes gets the confirmation message.
+func (c Confirmations) Bytes() []byte {
+	return c.confirmation
+}
+
+// Verify verifies an incoming confirmation message.
+func (c Confirmations) Verify(incomingConfirmation []byte) error {
+	if !c.suite.MacEqual(incomingConfirmation, c.remoteConfirmation) {
+		return errors.New("Verification Failed")
+	}
+	return nil
+}
