@@ -4,6 +4,7 @@ package ciphersuite
 type CipherSuite interface {
 	Curve() Curve
 	HashDigest([]byte) []byte
+	HashSize() int
 	DeriveKey([]byte, []byte, []byte) []byte
 	Mac([]byte, []byte) []byte
 	MacEqual([]byte, []byte) bool
@@ -18,7 +19,6 @@ type Curve interface {
 	RandomScalar() Scalar
 	NewPoint([]byte) (Point, error)
 	NewScalar([]byte) (Scalar, error)
-	HashSize() int
 	ScalarSize() int
 	PointSize() int
 }
