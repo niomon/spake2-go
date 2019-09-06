@@ -208,6 +208,11 @@ type Confirmations struct {
 	suite              ciphersuite.CipherSuite
 }
 
+// NewConfirmations creates a Confirmations.
+func NewConfirmations(confirmation, remoteConfirmation []byte, suite ciphersuite.CipherSuite) *Confirmations {
+	return &Confirmations{confirmation, remoteConfirmation, suite}
+}
+
 // Bytes gets the confirmation message.
 func (c Confirmations) Bytes() []byte {
 	return c.confirmation
