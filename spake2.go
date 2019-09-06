@@ -193,7 +193,7 @@ func (s SPAKE2Plus) StartClient(clientIdentity, serverIdentity, password, salt, 
 }
 
 func (s SPAKE2Plus) startServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad []byte, y ciphersuite.Scalar) (*ServerPlusState, []byte, error) {
-	w0, err := s.suite.Curve().NewScalar(append([]byte("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"), verifierW0...))
+	w0, err := s.suite.Curve().NewScalar(padScalarBytes(verifierW0, s.suite.Curve().ScalarSize()))
 	if err != nil {
 		return nil, []byte{}, err
 	}
@@ -203,9 +203,9 @@ func (s SPAKE2Plus) startServer(clientIdentity, serverIdentity, verifierW0, veri
 }
 
 // StartServer initializes a new server for SPAKE2+. Returns a SPAKE2+ server state and message.
-func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, password, salt, aad []byte) (*ServerPlusState, []byte, error) {
+func (s SPAKE2Plus) StartServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad []byte) (*ServerPlusState, []byte, error) {
 	y := s.suite.Curve().RandomScalar()
-	return s.startServer(clientIdentity, serverIdentity, password, salt, aad, y)
+	return s.startServer(clientIdentity, serverIdentity, verifierW0, verifierL, aad, y)
 }
 
 func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt []byte) ([]byte, []byte, error) {
@@ -216,7 +216,7 @@ func (s SPAKE2Plus) computeW0W1(clientIdentity, serverIdentity, password, salt [
 	if err != nil {
 		return nil, nil, err
 	}
-	hashSize := s.suite.Curve().HashSize() / 2
+	hashSize := s.suite.HashSize() / 2
 	w0, w1 := wBytes[:hashSize], wBytes[hashSize:]
 	return w0, w1, nil
 }

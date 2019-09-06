@@ -31,6 +31,11 @@ func (s Ed25519Sha256HkdfHmacScrypt) HashDigest(content []byte) []byte {
 	return hash[:]
 }
 
+// HashSize returns the size of hashes.
+func (s Ed25519Sha256HkdfHmacScrypt) HashSize() int {
+	return 32
+}
+
 // DeriveKey derives a key from the salt, intermediate key material and info.
 func (s Ed25519Sha256HkdfHmacScrypt) DeriveKey(salt, ikm, info []byte) []byte {
 	hkdf := hkdf.New(sha256.New, ikm, salt, info)
@@ -240,11 +245,6 @@ func (c Ed25519) NewScalar(p []byte) (Scalar, error) {
 		return nil, err
 	}
 	return Ed25519Scalar{v: pKyberSc}, nil
-}
-
-// HashSize returns the size of hashes.
-func (c Ed25519) HashSize() int {
-	return 32
 }
 
 // ScalarSize returns the size of scalars.
