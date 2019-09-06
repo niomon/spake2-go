@@ -1,4 +1,4 @@
-module authcore.io/spake2go
+module gitlab.com/blocksq/spake2-go
 
 go 1.12
 

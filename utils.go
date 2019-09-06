@@ -1,4 +1,4 @@
-package spake2go
+package spake2
 
 import (
 	"bytes"
