@@ -1,7 +1,7 @@
-package spake2go
+package spake2
 
 import (
-	"authcore.io/spake2go/internal/ciphersuite"
+	"gitlab.com/blocksq/spake2-go/internal/ciphersuite"
 )
 
 // SPAKE2 defines an initial state for SPAKE2. One could execute `StartClient` or `StartServer` to

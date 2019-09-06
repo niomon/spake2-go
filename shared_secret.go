@@ -1,10 +1,10 @@
-package spake2go
+package spake2
 
 import (
 	"bytes"
 	"errors"
 
-	"authcore.io/spake2go/internal/ciphersuite"
+	"gitlab.com/blocksq/spake2-go/internal/ciphersuite"
 )
 
 func confirmationMACs(ka, aad []byte, suite ciphersuite.CipherSuite) ([]byte, []byte) {
