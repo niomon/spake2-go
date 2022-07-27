@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"gitlab.com/blocksq/spake2-go/internal/ciphersuite"
+	"github.com/niomon/spake2-go/internal/ciphersuite"
 )
 
 func confirmationMACs(ka, aad []byte, suite ciphersuite.CipherSuite) ([]byte, []byte) {
